@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>在线生成独立摇滚MIDI</title>
+    <!-- 引入Pyodide（浏览器Python环境） -->
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.21.3/full/pyodide.js"></script>
+</head>
+<body>
+    <button onclick="generateMIDI()">点击生成音乐</button>
+    <div id="loading" style="display:none">生成中...</div>
+
+    <script>
+        async function generateMIDI() {
+            const loading = document.getElementById('loading')
+            loading.style.display = 'block'
+
+            // 初始化Python环境
+            const pyodide = await loadPyodide({
+                indexURL: "https://cdn.jsdelivr.net/pyodide/v0.21.3/full/"
+            })
+
+            // 安装Python依赖
+            await pyodide.loadPackage(["numpy"])
+            await pyodide.runPythonAsync(`
+                import micropip
+                await micropip.install('pretty_midi')
+            `)
+
+            // 注入你的代码
+            await pyodide.runPythonAsync(`
+                ${yourPythonCode}
+                
+                # 修改保存方式
+                import io
+                midi = PrettyMIDI(resolution=480, initial_tempo=92)
+                # ...（中间保持你原有代码不变）...
+                midi_data = io.BytesIO()
+                midi.write(midi_data)
+                midi_data.seek(0)
+            `)
+
+            // 获取生成的MIDI
+            const midiData = pyodide.globals.get('midi_data').getvalue()
+            
+            // 创建下载链接
+            const blob = new Blob([midiData], {type: 'audio/midi'})
+            const link = document.createElement('a')
+            link.href = URL.createObjectURL(blob)
+            link.download = 'rock_song.mid'
+            link.click()
+            
+            loading.style.display = 'none'
+        }
+    </script>
+</body>
+</html>
